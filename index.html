@@ -1,90 +1,105 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Vayzip</title>
 
 <style>
-body{
-  margin:0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-  background:#f7f7f7;
-  color:#222;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  min-height:100vh;
-}
+  body{
+    margin:0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    background:#f7f7f7;
+    color:#222;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+  }
 
-.container{
-  max-width:700px;
-  padding:40px 30px;
-  text-align:center;
-}
+  .container{
+    max-width:720px;
+    padding:44px 28px;
+    text-align:center;
+  }
 
-h1{
-  font-size:44px;
-  margin-bottom:10px;
-  letter-spacing:-0.02em;
-}
+  h1{
+    font-size:44px;
+    margin:0 0 10px;
+    letter-spacing:-0.02em;
+  }
 
-.tagline{
-  font-size:20px;
-  color:#666;
-  margin-bottom:35px;
-}
+  .tagline{
+    font-size:20px;
+    color:#666;
+    margin:0 0 34px;
+  }
 
-p{
-  line-height:1.6;
-  margin-bottom:18px;
-  color:#444;
-}
+  p{
+    line-height:1.65;
+    margin:0 0 16px;
+    color:#444;
+  }
 
-.small{
-  margin-top:40px;
-  font-size:14px;
-  color:#888;
-}
+  .note{
+    display:inline-block;
+    margin-top:10px;
+    padding:10px 14px;
+    border:1px solid #e6e6e6;
+    border-radius:12px;
+    background:#fff;
+    color:#555;
+    font-size:14px;
+    text-align:left;
+  }
 
-a{
-  color:#444;
-}
+  .small{
+    margin-top:36px;
+    font-size:14px;
+    color:#888;
+  }
 
+  .small a{ color:#666; text-decoration:none; }
+  .small a:hover{ text-decoration:underline; }
+
+  @media (max-width:520px){
+    h1{ font-size:38px; }
+    .tagline{ font-size:18px; }
+    .note{ text-align:center; }
+  }
 </style>
 </head>
 
 <body>
+  <div class="container">
+    <h1>Vayzip</h1>
+    <div class="tagline">Vacation rentals, without the endless clicking.</div>
 
-<div class="container">
+    <p>
+      Vayzip is a small project focused on making vacation rental search feel… sane.
+      The idea is simple: start with the map, filter fast, and get to the “this one looks right”
+      moment sooner.
+    </p>
 
-<h1>Vayzip</h1>
+    <p>
+      Under the hood, we’re experimenting with a search approach that’s designed to handle
+      huge amounts of pricing data without needing a small data center to do it.
+      (Less waiting. Less spinning. More “oh, that’s a good spot”.)
+    </p>
 
-<div class="tagline">
-A faster way to explore vacation rentals.
-</div>
+    <p>
+      And yes, the name is intentional:
+      <strong>Vay</strong> from <em>vacay</em>, and <strong>zip</strong> because speed is kind of the point.
+      <span style="white-space:nowrap;">Vay + zip = Vayzip.</span>
+    </p>
 
-<p>
-Vayzip is a small project focused on making vacation rental search simpler
-and faster. Instead of endless lists of properties, the idea is to explore
-destinations visually on a map and narrow things down quickly.
-</p>
+    <div class="note">
+      <strong>Status:</strong> quietly building. If you check back later, it should look more finished. 🙂
+    </div>
 
-<p>
-The goal is straightforward: make it easier to discover great places to stay
-without spending an hour clicking through results.
-</p>
-
-<p>
-It's still early days, but the plan is to gradually build a clean, fast
-platform for browsing vacation rentals and discovering new destinations.
-</p>
-
-<div class="small">
-vayzip.com
-</div>
-
-</div>
-
+    <div class="small">
+      vayzip.com
+    </div>
+  </div>
 </body>
 </html>
