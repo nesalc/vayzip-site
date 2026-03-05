@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vayzip Map</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; color: #222; }
+
+    .app {
+      height: 100%;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+    }
+
+    .sidebar {
+      background: #f7f7f7;
+      border-right: 1px solid #e6e6e6;
+      padding: 18px 16px;
+      overflow: auto;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0 0 6px;
+      letter-spacing: -0.01em;
+    }
+
+    .subtitle {
+      margin: 0 0 14px;
+      color: #666;
+      font-size: 13.5px;
+      line-height: 1.4;
+    }
+
+    .list { list-style: none; padding: 0; margin: 0; }
+    .item { margin: 0 0 10px; }
+    .link {
+      display: block;
+      padding: 10px 12px;
+      border: 1px solid #e6e6e6;
+      border-radius: 12px;
+      background: #fff;
+      text-decoration: none;
+      color: #222;
+      cursor: pointer;
+    }
+    .link:hover { background: #fcfcfc; }
+    .name { font-weight: 700; font-size: 14px; margin: 0 0 2px; }
+    .desc { font-size: 12.5px; color: #666; margin: 0; line-height: 1.35; }
+
+    #map { height: 100%; width: 100%; }
+
+    .footer {
+      margin-top: 14px;
+      font-size: 12px;
+      color: #888;
+    }
+
+    /* Mobile: make sidebar collapse on top */
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; grid-template-rows: 260px 1fr; }
+      .sidebar { border-right: none; border-bottom: 1px solid #e6e6e6; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <h1 class="title">Vayzip — Map</h1>
+      <p class="subtitle">
+        Click a place to jump the map there. Edit the list in the <code>PLACES</code> array in this file.
+      </p>
+
+      <ul id="places" class="list"></ul>
+
+      <div class="footer">
+        Tip: You can add links to your own pages by adding a <code>url</code> field per place.
+      </div>
+    </aside>
+
+    <main id="map" aria-label="Map"></main>
+  </div>
+
+  <script>
+    // 1) Put your Google Maps API key in the script tag near the bottom of this file.
+    // 2) Edit this list to add your own destinations/notes.
+    const PLACES = [
+      {
+        name: "Aalborg (example)",
+        desc: "Example marker (replace with your own).",
+        lat: 57.0488,
+        lng: 9.9217,
+        zoom: 12,
+        url: null
+      },
+      {
+        name: "Copenhagen (example)",
+        desc: "Another example. Clicking pans/zooms and drops a marker.",
+        lat: 55.6761,
+        lng: 12.5683,
+        zoom: 12,
+        url: null
+      },
+      {
+        name: "Los Angeles (example)",
+        desc: "You can add anything here: short notes, checklists, links, etc.",
+        lat: 34.0522,
+        lng: -118.2437,
+        zoom: 11,
+        url: "https://vayzip.com/"
+      }
+    ];
+
+    let map;
+    let marker;
+
+    function renderSidebar() {
+      const ul = document.getElementById("places");
+      ul.innerHTML = "";
+
+      PLACES.forEach((p, idx) => {
+        const li = document.createElement("li");
+        li.className = "item";
+
+        const a = document.createElement("a");
+        a.className = "link";
+        a.href = "#";
+        a.addEventListener("click", (e) => {
+          e.preventDefault();
+          goToPlace(p);
+        });
+
+        const name = document.createElement("div");
+        name.className = "name";
+        name.textContent = p.name;
+
+        const desc = document.createElement("p");
+        desc.className = "desc";
+        desc.textContent = p.desc || "";
+
+        a.appendChild(name);
+        a.appendChild(desc);
+
+        // Optional external link
+        if (p.url) {
+          const ext = document.createElement("div");
+          ext.className = "desc";
+          ext.style.marginTop = "6px";
+          ext.innerHTML = `🔗 <span style="text-decoration:underline;">${escapeHtml(p.url)}</span>`;
+          a.appendChild(ext);
+          a.addEventListener("auxclick", (e) => {
+            // middle click should still open url if you want; keep it simple for now
+          });
+          a.addEventListener("dblclick", () => {
+            window.open(p.url, "_blank", "noopener,noreferrer");
+          });
+        }
+
+        li.appendChild(a);
+        ul.appendChild(li);
+      });
+    }
+
+    function goToPlace(p) {
+      if (!map) return;
+
+      const center = { lat: p.lat, lng: p.lng };
+      map.panTo(center);
+      map.setZoom(p.zoom || 12);
+
+      if (!marker) {
+        marker = new google.maps.Marker({ map });
+      }
+      marker.setPosition(center);
+      marker.setTitle(p.name);
+
+      const info = new google.maps.InfoWindow({
+        content: `
+          <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;max-width:220px">
+            <div style="font-weight:700;margin-bottom:4px">${escapeHtml(p.name)}</div>
+            <div style="color:#555;font-size:12.5px;line-height:1.35">${escapeHtml(p.desc || "")}</div>
+            ${p.url ? `<div style="margin-top:8px;font-size:12.5px"><a href="${escapeAttr(p.url)}" target="_blank" rel="noopener noreferrer">Open link</a></div>` : ""}
+          </div>
+        `
+      });
+      info.open({ map, anchor: marker });
+    }
+
+    // Google Maps callback
+    window.initMap = function () {
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: PLACES[0].lat, lng: PLACES[0].lng },
+        zoom: PLACES[0].zoom || 12,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true
+      });
+
+      renderSidebar();
+      goToPlace(PLACES[0]);
+    };
+
+    // tiny escaping helpers (so your sidebar text can't break HTML in the info window)
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, (m) => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+      }[m]));
+    }
+    function escapeAttr(str) { return escapeHtml(str); }
+  </script>
+
+  <!-- Replace YOUR_GOOGLE_MAPS_API_KEY_HERE with your key -->
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY_HERE&callback=initMap"
+    async
+    defer
+  ></script>
+</body>
+</html>
