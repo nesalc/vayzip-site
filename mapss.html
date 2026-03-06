@@ -5,8 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Vayzip Map</title>
   <style>
-    html, body { height: 100%; margin: 0; }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; color: #222; }
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: #222;
+    }
 
     .app {
       height: 100%;
@@ -35,8 +42,43 @@
       line-height: 1.4;
     }
 
-    .list { list-style: none; padding: 0; margin: 0; }
-    .item { margin: 0 0 10px; }
+    .search-wrap {
+      margin: 0 0 16px;
+    }
+
+    .search-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      margin: 0 0 6px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 14px;
+      border: 1px solid #dcdcdc;
+      border-radius: 12px;
+      outline: none;
+      background: #fff;
+      box-sizing: border-box;
+    }
+
+    .search-input:focus {
+      border-color: #bdbdbd;
+    }
+
+    .list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .item {
+      margin: 0 0 10px;
+    }
+
     .link {
       display: block;
       padding: 10px 12px;
@@ -47,22 +89,46 @@
       color: #222;
       cursor: pointer;
     }
-    .link:hover { background: #fcfcfc; }
-    .name { font-weight: 700; font-size: 14px; margin: 0 0 2px; }
-    .desc { font-size: 12.5px; color: #666; margin: 0; line-height: 1.35; }
 
-    #map { height: 100%; width: 100%; }
+    .link:hover {
+      background: #fcfcfc;
+    }
+
+    .name {
+      font-weight: 700;
+      font-size: 14px;
+      margin: 0 0 2px;
+    }
+
+    .desc {
+      font-size: 12.5px;
+      color: #666;
+      margin: 0;
+      line-height: 1.35;
+    }
+
+    #map {
+      height: 100%;
+      width: 100%;
+    }
 
     .footer {
       margin-top: 14px;
       font-size: 12px;
       color: #888;
+      line-height: 1.5;
     }
 
-    /* Mobile: make sidebar collapse on top */
     @media (max-width: 900px) {
-      .app { grid-template-columns: 1fr; grid-template-rows: 260px 1fr; }
-      .sidebar { border-right: none; border-bottom: 1px solid #e6e6e6; }
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: 280px 1fr;
+      }
+
+      .sidebar {
+        border-right: none;
+        border-bottom: 1px solid #e6e6e6;
+      }
     }
   </style>
 </head>
@@ -71,13 +137,25 @@
     <aside class="sidebar">
       <h1 class="title">Vayzip — Map</h1>
       <p class="subtitle">
-        Click a place to jump the map there. Edit the list in the <code>PLACES</code> array in this file.
+        Search for a place, or click one of your saved items below.
       </p>
+
+      <div class="search-wrap">
+        <label class="search-label" for="place-search">Search location</label>
+        <input
+          id="place-search"
+          class="search-input"
+          type="text"
+          placeholder="Try Malibu, Alicante, Lake Garda..."
+          autocomplete="off"
+        />
+      </div>
 
       <ul id="places" class="list"></ul>
 
       <div class="footer">
-        Tip: You can add links to your own pages by adding a <code>url</code> field per place.
+        Search moves the map only.<br />
+        No marker is added.
       </div>
     </aside>
 
@@ -85,43 +163,37 @@
   </div>
 
   <script>
-    // 1) Put your Google Maps API key in the script tag near the bottom of this file.
-    // 2) Edit this list to add your own destinations/notes.
     const PLACES = [
       {
-        name: "Aalborg (example)",
-        desc: "Example marker (replace with your own).",
+        name: "Aalborg",
+        desc: "Example saved place.",
         lat: 57.0488,
         lng: 9.9217,
-        zoom: 12,
-        url: null
+        zoom: 12
       },
       {
-        name: "Copenhagen (example)",
-        desc: "Another example. Clicking pans/zooms and drops a marker.",
+        name: "Copenhagen",
+        desc: "Another example saved place.",
         lat: 55.6761,
         lng: 12.5683,
-        zoom: 12,
-        url: null
+        zoom: 12
       },
       {
-        name: "Los Angeles (example)",
-        desc: "You can add anything here: short notes, checklists, links, etc.",
+        name: "Los Angeles",
+        desc: "Useful for testing southern California areas.",
         lat: 34.0522,
         lng: -118.2437,
-        zoom: 11,
-        url: "https://vayzip.com/"
+        zoom: 10
       }
     ];
 
     let map;
-    let marker;
 
     function renderSidebar() {
       const ul = document.getElementById("places");
       ul.innerHTML = "";
 
-      PLACES.forEach((p, idx) => {
+      PLACES.forEach((p) => {
         const li = document.createElement("li");
         li.className = "item";
 
@@ -130,7 +202,7 @@
         a.href = "#";
         a.addEventListener("click", (e) => {
           e.preventDefault();
-          goToPlace(p);
+          goToCoords(p.lat, p.lng, p.zoom || 12);
         });
 
         const name = document.createElement("div");
@@ -143,76 +215,58 @@
 
         a.appendChild(name);
         a.appendChild(desc);
-
-        // Optional external link
-        if (p.url) {
-          const ext = document.createElement("div");
-          ext.className = "desc";
-          ext.style.marginTop = "6px";
-          ext.innerHTML = `🔗 <span style="text-decoration:underline;">${escapeHtml(p.url)}</span>`;
-          a.appendChild(ext);
-          a.addEventListener("auxclick", (e) => {
-            // middle click should still open url if you want; keep it simple for now
-          });
-          a.addEventListener("dblclick", () => {
-            window.open(p.url, "_blank", "noopener,noreferrer");
-          });
-        }
-
         li.appendChild(a);
         ul.appendChild(li);
       });
     }
 
-    function goToPlace(p) {
+    function goToCoords(lat, lng, zoom) {
       if (!map) return;
-
-      const center = { lat: p.lat, lng: p.lng };
-      map.panTo(center);
-      map.setZoom(p.zoom || 12);
-
-      if (!marker) {
-        marker = new google.maps.Marker({ map });
-      }
-      marker.setPosition(center);
-      marker.setTitle(p.name);
-
-      const info = new google.maps.InfoWindow({
-        content: `
-          <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;max-width:220px">
-            <div style="font-weight:700;margin-bottom:4px">${escapeHtml(p.name)}</div>
-            <div style="color:#555;font-size:12.5px;line-height:1.35">${escapeHtml(p.desc || "")}</div>
-            ${p.url ? `<div style="margin-top:8px;font-size:12.5px"><a href="${escapeAttr(p.url)}" target="_blank" rel="noopener noreferrer">Open link</a></div>` : ""}
-          </div>
-        `
-      });
-      info.open({ map, anchor: marker });
+      map.panTo({ lat, lng });
+      if (zoom) map.setZoom(zoom);
     }
 
-    // Google Maps callback
-    window.initMap = function () {
+    function setupAutocomplete() {
+      const input = document.getElementById("place-search");
+
+      const autocomplete = new google.maps.places.Autocomplete(input, {
+        fields: ["geometry", "name"],
+      });
+
+      autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+
+        if (!place || !place.geometry) {
+          return;
+        }
+
+        if (place.geometry.viewport) {
+          map.fitBounds(place.geometry.viewport);
+        } else if (place.geometry.location) {
+          map.panTo(place.geometry.location);
+          map.setZoom(12);
+        }
+      });
+    }
+
+    function initMap() {
       map = new google.maps.Map(document.getElementById("map"), {
         center: { lat: PLACES[0].lat, lng: PLACES[0].lng },
         zoom: PLACES[0].zoom || 12,
         mapTypeControl: false,
         streetViewControl: false,
-        fullscreenControl: true
+        fullscreenControl: true,
+        clickableIcons: false
       });
 
       renderSidebar();
-      goToPlace(PLACES[0]);
-    };
-
-    // tiny escaping helpers (so your sidebar text can't break HTML in the info window)
-    function escapeHtml(str) {
-      return String(str).replace(/[&<>"']/g, (m) => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-      }[m]));
+      setupAutocomplete();
     }
-    function escapeAttr(str) { return escapeHtml(str); }
+
+    window.initMap = initMap;
   </script>
 
-  <!-- Replace YOUR_GOOGLE_MAPS_API_KEY_HERE with your key -->
+  <!-- Replace with your real API key -->
   <script
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDF8sAJtCxxefueYyx8c8w8zCbo5oYzrc8&callback=initMap"
     async
@@ -220,3 +274,5 @@
   ></script>
 </body>
 </html>
+
+
