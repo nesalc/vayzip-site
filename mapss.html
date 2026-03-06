@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -27,6 +26,8 @@
       border-right: 1px solid #e6e6e6;
       padding: 18px 16px;
       overflow: auto;
+      display: flex;
+      flex-direction: column;
     }
 
     .title {
@@ -82,42 +83,10 @@
       line-height: 1.4;
     }
 
-    .list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    .item {
-      margin: 0 0 10px;
-    }
-
-    .link {
-      display: block;
-      padding: 10px 12px;
-      border: 1px solid #e6e6e6;
-      border-radius: 12px;
-      background: #fff;
-      text-decoration: none;
-      color: #222;
-      cursor: pointer;
-    }
-
-    .link:hover {
-      background: #fcfcfc;
-    }
-
-    .name {
-      font-weight: 700;
-      font-size: 14px;
-      margin: 0 0 2px;
-    }
-
-    .desc {
-      font-size: 12.5px;
-      color: #666;
-      margin: 0;
-      line-height: 1.35;
+    .recent-note {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #888;
     }
 
     #map {
@@ -126,10 +95,12 @@
     }
 
     .footer {
-      margin-top: 14px;
+      margin-top: auto;
       font-size: 12px;
       color: #888;
       line-height: 1.5;
+      padding-top: 20px;
+      border-top: 1px solid #e6e6e6;
     }
 
     @media (max-width: 900px) {
@@ -148,33 +119,40 @@
 <body>
   <div class="app">
     <aside class="sidebar">
-      <h1 class="title">Vayzip — Map</h1>
-      <p class="subtitle">
-        Search for a place, or click one of your saved items below.
-      </p>
 
-      <div class="search-wrap">
-        <label class="search-label" for="place-search">Search location</label>
-        <input
-          id="place-search"
-          class="search-input"
-          type="text"
-          placeholder="Try Malibu, Alicante, Lake Garda..."
-          autocomplete="off"
-        />
-        <div id="search-error" class="error">
-          Search is unavailable. Make sure the Places API is enabled for this key.
+      <div>
+        <h1 class="title">Vayzip — Map</h1>
+        <p class="subtitle">
+          Search for a place, or jump back to somewhere you've searched before.
+        </p>
+
+        <div class="search-wrap">
+          <label class="search-label" for="place-search">Search location</label>
+          <input
+            id="place-search"
+            class="search-input"
+            type="text"
+            placeholder="Try Malibu, Alicante, Lake Garda..."
+            autocomplete="off"
+          />
+          <div id="search-error" class="error">
+            Search is unavailable. Make sure the Places API is enabled for this key.
+          </div>
+        </div>
+
+        <select id="recent-searches" class="search-input" style="margin-top:8px; display:none;">
+          <option value="">Recent locations</option>
+        </select>
+
+        <div class="recent-note">
+          We only keep the latest 10 searches.
         </div>
       </div>
 
-      <select id="recent-searches" class="search-input" style="margin-top:8px; display:none;">
-        <option value="">Recent locations</option>
-      </select>
-
       <div class="footer">
-        Search moves the map only.<br>
-        No marker is added.
+        Built by someone with 20+ years in online travel and vacation rentals – obsessed with making search stupidly fast. No waiting around.
       </div>
+
     </aside>
 
     <main id="map" aria-label="Map"></main>
@@ -184,8 +162,8 @@
     let map;
 
     const RECENT_SEARCHES_KEY = "vayzip_recent_locations";
-    const MAX_RECENT_SEARCHES = 8;
-    
+    const MAX_RECENT_SEARCHES = 10;
+
     function getRecentSearches() {
       try {
         const raw = localStorage.getItem(RECENT_SEARCHES_KEY);
@@ -194,81 +172,73 @@
         return [];
       }
     }
-    
+
     function saveRecentSearches(items) {
       localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(items));
     }
-    
+
     function addRecentSearch(place) {
       if (!place || !place.name || !place.geometry || !place.geometry.location) return;
-    
+
       const lat = place.geometry.location.lat();
       const lng = place.geometry.location.lng();
-    
+
       const item = {
         name: place.name,
         lat: lat,
         lng: lng
       };
-    
+
       let items = getRecentSearches();
-    
-      // remove existing match so newest always goes on top
+
       items = items.filter((x) => x.name !== item.name);
-    
+
       items.unshift(item);
-    
+
       if (items.length > MAX_RECENT_SEARCHES) {
         items = items.slice(0, MAX_RECENT_SEARCHES);
       }
-    
+
       saveRecentSearches(items);
       renderRecentSearches();
     }
-    
+
     function renderRecentSearches() {
       const select = document.getElementById("recent-searches");
       const items = getRecentSearches();
-    
+
       select.innerHTML = '<option value="">Recent locations</option>';
-    
+
       if (!items.length) {
         select.style.display = "none";
         return;
       }
-    
+
       items.forEach((item, index) => {
         const option = document.createElement("option");
         option.value = String(index);
         option.textContent = item.name;
         select.appendChild(option);
       });
-    
+
       select.style.display = "block";
     }
-    
+
     function setupRecentSearchesDropdown() {
       const select = document.getElementById("recent-searches");
-    
+
       select.addEventListener("change", () => {
         const items = getRecentSearches();
         const index = Number(select.value);
-    
+
         if (Number.isNaN(index) || !items[index]) return;
-    
+
         const item = items[index];
         map.panTo({ lat: item.lat, lng: item.lng });
         map.setZoom(12);
-    
-        // reset dropdown label after jump
+
         select.value = "";
       });
-    }
-
-    function goToCoords(lat, lng, zoom) {
-      if (!map) return;
-      map.panTo({ lat, lng });
-      if (zoom) map.setZoom(zoom);
     }
 
     function showSearchError(message) {
@@ -279,7 +249,7 @@
 
     function setupAutocomplete() {
       const input = document.getElementById("place-search");
-    
+
       if (
         !window.google ||
         !google.maps ||
@@ -289,69 +259,69 @@
         showSearchError("Search is unavailable. Enable Places API and load libraries=places.");
         return;
       }
-    
+
       const autocomplete = new google.maps.places.Autocomplete(input, {
         fields: ["geometry", "name"]
       });
-    
+
       autocomplete.bindTo("bounds", map);
-    
+
       autocomplete.addListener("place_changed", () => {
         const place = autocomplete.getPlace();
-    
+
         if (!place || !place.geometry) return;
-    
+
         if (place.geometry.viewport) {
           map.fitBounds(place.geometry.viewport);
         } else if (place.geometry.location) {
           map.panTo(place.geometry.location);
           map.setZoom(12);
         }
-    
+
         addRecentSearch(place);
         input.value = "";
       });
     }
 
-function centerMapOnUserLocation() {
-  if (!navigator.geolocation) {
-    centerUSA();
-    return;
-  }
+    function centerMapOnUserLocation() {
+      if (!navigator.geolocation) {
+        centerUSA();
+        return;
+      }
 
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      const userLat = position.coords.latitude;
-      const userLng = position.coords.longitude;
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const userLat = position.coords.latitude;
+          const userLng = position.coords.longitude;
 
-      map.setCenter({ lat: userLat, lng: userLng });
-      map.setZoom(6); // regional view
-    },
-    () => {
-      centerUSA();
-    },
-    {
-      enableHighAccuracy: false,
-      timeout: 5000,
-      maximumAge: 300000
+          map.setCenter({ lat: userLat, lng: userLng });
+          map.setZoom(6);
+        },
+        () => {
+          centerUSA();
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 5000,
+          maximumAge: 300000
+        }
+      );
     }
-  );
-}
 
-function centerUSA() {
-  map.setCenter({ lat: 39.8283, lng: -98.5795 }); // geographic center of continental US
-  map.setZoom(4); // shows most of the US
-}
+    function centerUSA() {
+      map.setCenter({ lat: 39.8283, lng: -98.5795 });
+      map.setZoom(4);
+    }
 
     function initMap() {
-      map = new google.maps.Map(document.getElementById("map"), {        
+      map = new google.maps.Map(document.getElementById("map"), {
         zoom: 12,
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: true,
         clickableIcons: false
       });
-      
+
       setupAutocomplete();
       renderRecentSearches();
       setupRecentSearchesDropdown();
@@ -361,7 +331,6 @@ function centerUSA() {
     window.initMap = initMap;
   </script>
 
-  <!-- Replace with your own restricted API key -->
   <script
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDF8sAJtCxxefueYyx8c8w8zCbo5oYzrc8&loading=async&libraries=places&callback=initMap"
     async
@@ -369,7 +338,4 @@ function centerUSA() {
   ></script>
 </body>
 </html>
-
-
-
 
