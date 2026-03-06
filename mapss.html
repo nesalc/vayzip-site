@@ -83,12 +83,6 @@
       line-height: 1.4;
     }
 
-    .recent-note {
-      margin-top: 6px;
-      font-size: 12px;
-      color: #888;
-    }
-
     #map {
       height: 100%;
       width: 100%;
@@ -143,10 +137,7 @@
         <select id="recent-searches" class="search-input" style="margin-top:8px; display:none;">
           <option value="">Recent locations</option>
         </select>
-
-        <div class="recent-note">
-          We only keep the latest 10 searches.
-        </div>
+        
       </div>
 
       <div class="footer">
@@ -206,21 +197,27 @@
     function renderRecentSearches() {
       const select = document.getElementById("recent-searches");
       const items = getRecentSearches();
-
+    
       select.innerHTML = '<option value="">Recent locations</option>';
-
+    
       if (!items.length) {
         select.style.display = "none";
         return;
       }
-
+    
       items.forEach((item, index) => {
         const option = document.createElement("option");
         option.value = String(index);
         option.textContent = item.name;
         select.appendChild(option);
       });
-
+    
+      // Add info line at bottom
+      const info = document.createElement("option");
+      info.textContent = "— We only keep the latest 10 searches —";
+      info.disabled = true;
+      select.appendChild(info);
+    
       select.style.display = "block";
     }
 
