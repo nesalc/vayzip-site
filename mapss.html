@@ -167,7 +167,9 @@
         </div>
       </div>
 
-      <ul id="places" class="list"></ul>
+      <select id="recent-searches" class="search-input" style="margin-top:8px; display:none;">
+        <option value="">Recent locations</option>
+      </select>
 
       <div class="footer">
         Search moves the map only.<br>
@@ -179,60 +181,87 @@
   </div>
 
   <script>
-    const PLACES = [
-      {
-        name: "Aalborg",
-        desc: "Example saved place.",
-        lat: 57.0488,
-        lng: 9.9217,
-        zoom: 12
-      },
-      {
-        name: "Copenhagen",
-        desc: "Another example saved place.",
-        lat: 55.6761,
-        lng: 12.5683,
-        zoom: 12
-      },
-      {
-        name: "Los Angeles",
-        desc: "Useful for testing southern California areas.",
-        lat: 34.0522,
-        lng: -118.2437,
-        zoom: 10
-      }
-    ];
-
     let map;
 
-    function renderSidebar() {
-      const ul = document.getElementById("places");
-      ul.innerHTML = "";
-
-      PLACES.forEach((p) => {
-        const li = document.createElement("li");
-        li.className = "item";
-
-        const a = document.createElement("a");
-        a.className = "link";
-        a.href = "#";
-        a.addEventListener("click", (e) => {
-          e.preventDefault();
-          goToCoords(p.lat, p.lng, p.zoom || 12);
-        });
-
-        const name = document.createElement("div");
-        name.className = "name";
-        name.textContent = p.name;
-
-        const desc = document.createElement("p");
-        desc.className = "desc";
-        desc.textContent = p.desc || "";
-
-        a.appendChild(name);
-        a.appendChild(desc);
-        li.appendChild(a);
-        ul.appendChild(li);
+    const RECENT_SEARCHES_KEY = "vayzip_recent_locations";
+    const MAX_RECENT_SEARCHES = 8;
+    
+    function getRecentSearches() {
+      try {
+        const raw = localStorage.getItem(RECENT_SEARCHES_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (err) {
+        return [];
+      }
+    }
+    
+    function saveRecentSearches(items) {
+      localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(items));
+    }
+    
+    function addRecentSearch(place) {
+      if (!place || !place.name || !place.geometry || !place.geometry.location) return;
+    
+      const lat = place.geometry.location.lat();
+      const lng = place.geometry.location.lng();
+    
+      const item = {
+        name: place.name,
+        lat: lat,
+        lng: lng
+      };
+    
+      let items = getRecentSearches();
+    
+      // remove existing match so newest always goes on top
+      items = items.filter((x) => x.name !== item.name);
+    
+      items.unshift(item);
+    
+      if (items.length > MAX_RECENT_SEARCHES) {
+        items = items.slice(0, MAX_RECENT_SEARCHES);
+      }
+    
+      saveRecentSearches(items);
+      renderRecentSearches();
+    }
+    
+    function renderRecentSearches() {
+      const select = document.getElementById("recent-searches");
+      const items = getRecentSearches();
+    
+      select.innerHTML = '<option value="">Recent locations</option>';
+    
+      if (!items.length) {
+        select.style.display = "none";
+        return;
+      }
+    
+      items.forEach((item, index) => {
+        const option = document.createElement("option");
+        option.value = String(index);
+        option.textContent = item.name;
+        select.appendChild(option);
+      });
+    
+      select.style.display = "block";
+    }
+    
+    function setupRecentSearchesDropdown() {
+      const select = document.getElementById("recent-searches");
+    
+      select.addEventListener("change", () => {
+        const items = getRecentSearches();
+        const index = Number(select.value);
+    
+        if (Number.isNaN(index) || !items[index]) return;
+    
+        const item = items[index];
+        map.panTo({ lat: item.lat, lng: item.lng });
+        map.setZoom(12);
+    
+        // reset dropdown label after jump
+        select.value = "";
       });
     }
 
@@ -250,7 +279,7 @@
 
     function setupAutocomplete() {
       const input = document.getElementById("place-search");
-
+    
       if (
         !window.google ||
         !google.maps ||
@@ -260,22 +289,27 @@
         showSearchError("Search is unavailable. Enable Places API and load libraries=places.");
         return;
       }
-
+    
       const autocomplete = new google.maps.places.Autocomplete(input, {
         fields: ["geometry", "name"]
       });
-
+    
+      autocomplete.bindTo("bounds", map);
+    
       autocomplete.addListener("place_changed", () => {
         const place = autocomplete.getPlace();
-
+    
         if (!place || !place.geometry) return;
-
+    
         if (place.geometry.viewport) {
           map.fitBounds(place.geometry.viewport);
         } else if (place.geometry.location) {
           map.panTo(place.geometry.location);
           map.setZoom(12);
         }
+    
+        addRecentSearch(place);
+        input.value = "";
       });
     }
 
@@ -321,6 +355,8 @@ function centerUSA() {
 
       renderSidebar();
       setupAutocomplete();
+      renderRecentSearches();
+      setupRecentSearchesDropdown();
       centerMapOnUserLocation();
     }
 
